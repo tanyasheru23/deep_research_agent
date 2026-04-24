@@ -98,7 +98,11 @@ For multi_agent results, comment the line 21 in evals.py and uncomment line 22. 
 ```bash
 git clone https://github.com/yourname/deep-research-agent
 cd deep-research-agent
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
+cp .env.example .env
+# fill in your keys
 ```
 
 ### 2. Configure environment
