@@ -122,23 +122,12 @@ python main.py
 ```
 deep_research_agent/
 │
-├── main.py                              # FastAPI app — routes, lifespan, SSE
-├── evals.py                             # Evaluation suite
-├── index.html                           # Frontend (served by FastAPI)
-├── deep_research.db                     # SQL DB for startup - FastAPI
-│
-├── .env.example
-├── requirements.txt
 ├── app_agents/
 │   ├── __init__.py 
 │   ├── planner_agent.py                 # Query decomposition + gap analysis
 │   ├── search_agent.py                  # Web search + credibility scoring
 │   ├── writer_agent.py                  # Coordinator + section writers + editor
 │   ├── email_agent.py                   # SendGrid email delivery
-├── db/                      
-│   ├── __init__.py
-│   ├── models.py                        # SQLAlchemy models
-│   ├── session.py                       # db session
 ├── auth/
 │   ├── __init__.py
 │   ├── auth.py                          # JWT auth — register, login, tokens
@@ -148,8 +137,20 @@ deep_research_agent/
 │   ├── research_manager_baseline.py
 │   ├── research_manager.py              # Pipeline orchestration
 │   ├── pdf_export.py                    # reportlab PDF generation
+├── db/                      
+│   ├── __init__.py
+│   ├── models.py                        # SQLAlchemy models
+│   ├── session.py                       # db session
 ├── eval_ouputs/                         # for storing eval outputs
-│   ├── 
+│   ├── example.json
+│ 
+├── main.py                              # FastAPI app — routes, lifespan, SSE
+├── evals.py                             # Evaluation suite
+├── index.html                           # Frontend (served by FastAPI)
+├── deep_research.db                     # SQL DB for startup - FastAPI
+│
+├── .env.example
+├── requirements.txt
 ├── uvicorn_app.py                       # initial app - without FastAPI and frontend,
 │                                        # using gradio - add `gradio` in requirements.txt to run this
 └── README.md
