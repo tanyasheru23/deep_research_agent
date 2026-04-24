@@ -126,6 +126,7 @@ deep_research_agent/
 │   ├── __init__.py 
 │   ├── planner_agent.py                 # Query decomposition + gap analysis
 │   ├── search_agent.py                  # Web search + credibility scoring
+│   ├── writer_agent_baseline.py         
 │   ├── writer_agent.py                  # Coordinator + section writers + editor
 │   ├── email_agent.py                   # SendGrid email delivery
 ├── auth/
