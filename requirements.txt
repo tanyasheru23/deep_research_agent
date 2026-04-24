@@ -1,10 +1,19 @@
+# Core
 openai-agents
 python-dotenv
 fastapi
 uvicorn[standard]
+
+# Database
 sqlalchemy
 aiosqlite
+
+# PDF export
 reportlab
+
+# Email
 sendgrid
+
+# Data validation
 pydantic
-reportlab
+pydantic[email]
