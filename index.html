@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Deep Research</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+:root {
+  --ink:    #0e0e0e;
+  --paper:  #f5f0e8;
+  --cream:  #ede8dc;
+  --warm:   #d4c9b0;
+  --accent: #c84b2f;
+  --blue:   #2f6bc8;
+  --muted:  #7a7060;
+  --ok:     #2a7a4b;
+  --serif:  'DM Serif Display', serif;
+  --sans:   'Syne', sans-serif;
+  --mono:   'DM Mono', monospace;
+  --r:      6px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--sans); background: var(--paper); color: var(--ink); min-height: 100vh; }
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.4;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+}
+
+/* ── Auth screen ──────────────────────────────── */
+#auth-screen {
+  position:fixed; inset:0; z-index:100;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--paper);
+}
+.auth-card {
+  width:100%; max-width:380px;
+  background:var(--cream);
+  border:1.5px solid var(--warm);
+  border-radius:14px;
+  padding:36px 32px;
+  position:relative; z-index:1;
+}
+.auth-title { font-family:var(--serif); font-size:26px; font-style:italic; margin-bottom:4px; }
+.auth-sub { font-size:12px; color:var(--muted); margin-bottom:24px; }
+.auth-tabs { display:flex; gap:0; margin-bottom:24px; border-bottom:1.5px solid var(--warm); }
+.auth-tab {
+  font-family:var(--sans); font-size:11px; font-weight:600; letter-spacing:.1em;
+  text-transform:uppercase; padding:10px 18px; border:none; background:transparent;
+  color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1.5px;
+  transition:all .15s;
+}
+.auth-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+.field { margin-bottom:14px; }
+.field label { display:block; font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:5px; }
+.field input {
+  width:100%; font-family:var(--sans); font-size:14px; color:var(--ink);
+  background:var(--paper); border:1.5px solid var(--warm); border-radius:var(--r);
+  padding:10px 12px; outline:none; transition:border-color .2s;
+}
+.field input:focus { border-color:var(--blue); }
+.auth-btn {
+  width:100%; font-family:var(--sans); font-size:13px; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase; padding:13px;
+  background:var(--accent); color:white; border:none; border-radius:var(--r);
+  cursor:pointer; transition:background .2s; margin-top:6px;
+}
+.auth-btn:hover { background:#a83a22; }
+.auth-error { font-size:12px; color:var(--accent); margin-top:10px; min-height:16px; }
+
+/* ── App shell ────────────────────────────────── */
+#app { display:none; }
+#app.visible {
+  display:grid;
+  grid-template-columns: 300px 1fr;
+  grid-template-rows: auto 1fr;
+  min-height:100vh;
+  position:relative; z-index:1;
+}
+
+header {
+  grid-column:1/-1;
+  padding:16px 28px;
+  border-bottom:1.5px solid var(--warm);
+  display:flex; align-items:center; gap:12px;
+  background:var(--paper);
+}
+header h1 { font-family:var(--serif); font-size:24px; font-style:italic; }
+header .tagline { font-size:11px; color:var(--muted); letter-spacing:.08em; text-transform:uppercase; }
+.user-pill {
+  margin-left:auto; display:flex; align-items:center; gap:10px;
+  font-size:12px; color:var(--muted);
+}
+.user-pill strong { color:var(--ink); }
+.icon-btn {
+  background:none; border:1.5px solid var(--warm); border-radius:var(--r);
+  padding:5px 10px; font-family:var(--sans); font-size:11px; font-weight:600;
+  letter-spacing:.06em; text-transform:uppercase; color:var(--muted); cursor:pointer;
+  transition:all .15s;
+}
+.icon-btn:hover { border-color:var(--accent); color:var(--accent); }
+.status-dot { width:8px; height:8px; border-radius:50%; background:var(--warm); transition:background .3s; }
+.status-dot.active { background:var(--accent); animation:pulse 1.2s ease-in-out infinite; }
+.status-dot.done   { background:var(--ok); animation:none; }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:.4} }
+
+aside {
+  border-right:1.5px solid var(--warm);
+  padding:24px 20px;
+  display:flex; flex-direction:column; gap:18px;
+  background:var(--cream);
+  overflow-y:auto;
+}
+.field-label { font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin-bottom:5px; }
+textarea {
+  width:100%; font-family:var(--sans); font-size:13px; line-height:1.6; color:var(--ink);
+  background:var(--paper); border:1.5px solid var(--warm); border-radius:var(--r);
+  padding:10px 12px; resize:vertical; min-height:90px; outline:none; transition:border-color .2s;
+}
+textarea:focus { border-color:var(--blue); }
+.depth-group { display:flex; gap:5px; }
+.depth-btn {
+  flex:1; font-family:var(--sans); font-size:11px; font-weight:600;
+  letter-spacing:.06em; text-transform:uppercase; padding:8px 0;
+  border:1.5px solid var(--warm); border-radius:var(--r); background:var(--paper);
+  color:var(--muted); cursor:pointer; transition:all .15s;
+}
+.depth-btn:hover  { border-color:var(--blue); color:var(--blue); }
+.depth-btn.active { background:var(--ink); border-color:var(--ink); color:var(--paper); }
+.depth-hint { font-size:11px; color:var(--muted); margin-top:5px; }
+.toggle-row { display:flex; align-items:center; justify-content:space-between; font-size:13px; }
+.toggle { position:relative; width:36px; height:20px; }
+.toggle input { opacity:0; width:0; height:0; }
+.toggle-track {
+  position:absolute; inset:0; background:var(--warm); border-radius:20px;
+  cursor:pointer; transition:background .2s;
+}
+.toggle input:checked + .toggle-track { background:var(--blue); }
+.toggle-track::after {
+  content:''; position:absolute; top:2px; left:2px;
+  width:16px; height:16px; border-radius:50%; background:white; transition:transform .2s;
+}
+.toggle input:checked + .toggle-track::after { transform:translateX(16px); }
+.run-btn {
+  width:100%; font-family:var(--sans); font-size:13px; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase; padding:13px;
+  background:var(--accent); color:white; border:none; border-radius:var(--r);
+  cursor:pointer; transition:background .2s, transform .1s;
+}
+.run-btn:hover  { background:#a83a22; }
+.run-btn:active { transform:scale(.98); }
+.run-btn:disabled { background:var(--warm); cursor:not-allowed; }
+.history-list { display:flex; flex-direction:column; gap:3px; max-height:160px; overflow-y:auto; }
+.history-item {
+  font-size:11px; color:var(--muted); padding:5px 8px; border-radius:4px;
+  cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:background .15s;
+}
+.history-item:hover { background:var(--warm); color:var(--ink); }
+
+/* ── Profile modal ────────────────────────────── */
+.modal-bg {
+  display:none; position:fixed; inset:0; z-index:200;
+  background:rgba(14,14,14,.4); align-items:center; justify-content:center;
+}
+.modal-bg.open { display:flex; }
+.modal {
+  background:var(--cream); border:1.5px solid var(--warm); border-radius:14px;
+  padding:28px; width:100%; max-width:360px;
+}
+.modal h2 { font-family:var(--serif); font-style:italic; font-size:20px; margin-bottom:16px; }
+.modal-actions { display:flex; gap:8px; margin-top:16px; }
+.save-btn {
+  font-family:var(--sans); font-size:12px; font-weight:600; letter-spacing:.08em;
+  text-transform:uppercase; padding:9px 18px; background:var(--blue); color:white;
+  border:none; border-radius:var(--r); cursor:pointer; transition:background .15s;
+}
+.save-btn:hover { background:#1f5aab; }
+.cancel-btn {
+  font-family:var(--sans); font-size:12px; font-weight:600; letter-spacing:.08em;
+  text-transform:uppercase; padding:9px 18px; background:transparent;
+  border:1.5px solid var(--warm); color:var(--muted); border-radius:var(--r);
+  cursor:pointer; transition:all .15s;
+}
+.cancel-btn:hover { border-color:var(--muted); color:var(--ink); }
+.modal-msg { font-size:12px; margin-top:8px; min-height:16px; }
+.modal-msg.ok  { color:var(--ok); }
+.modal-msg.err { color:var(--accent); }
+
+/* ── Main panel ───────────────────────────────── */
+main { display:flex; flex-direction:column; overflow:hidden; }
+.tabs {
+  display:flex; border-bottom:1.5px solid var(--warm);
+  padding:0 28px; background:var(--paper);
+}
+.tab {
+  font-family:var(--sans); font-size:11px; font-weight:600; letter-spacing:.1em;
+  text-transform:uppercase; padding:13px 16px; border:none; background:transparent;
+  color:var(--muted); cursor:pointer; border-bottom:2px solid transparent;
+  margin-bottom:-1.5px; transition:all .15s;
+}
+.tab:hover { color:var(--ink); }
+.tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+.tab-badge {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:15px; height:15px; background:var(--accent); color:white;
+  border-radius:50%; font-size:8px; margin-left:5px; opacity:0; transition:opacity .2s;
+}
+.tab-badge.on { opacity:1; }
+.panels { flex:1; overflow:hidden; position:relative; }
+.panel { position:absolute; inset:0; padding:24px 28px; overflow-y:auto; display:none; }
+.panel.active { display:block; }
+
+/* ── Log ──────────────────────────────────────── */
+.log-feed { display:flex; flex-direction:column; gap:3px; }
+.log-entry {
+  font-family:var(--mono); font-size:12px; line-height:1.7; color:var(--muted);
+  animation:fadeIn .2s ease both;
+}
+.log-entry.hi  { color:var(--ink); font-weight:500; }
+.log-entry.err { color:var(--accent); }
+@keyframes fadeIn { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:none} }
+.empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; height:260px; gap:10px; color:var(--muted); }
+.empty-icon { font-family:var(--serif); font-size:36px; font-style:italic; opacity:.3; }
+
+/* ── Report ───────────────────────────────────── */
+.report-toolbar { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; align-items:center; }
+.tool-btn {
+  font-family:var(--sans); font-size:11px; font-weight:600; letter-spacing:.08em;
+  text-transform:uppercase; padding:7px 14px; background:var(--cream);
+  border:1.5px solid var(--warm); border-radius:var(--r); color:var(--muted);
+  cursor:pointer; transition:all .15s; text-decoration:none; display:inline-block;
+}
+.tool-btn:hover { border-color:var(--blue); color:var(--blue); }
+.tool-btn.dl { border-color:var(--ok); color:var(--ok); }
+.tool-btn.dl:hover { background:var(--ok); color:white; }
+.tool-btn:disabled { opacity:.4; cursor:not-allowed; }
+#report-content { font-family:'Georgia',serif; font-size:15px; line-height:1.8; max-width:740px; }
+#report-content h1,#report-content h2 { font-family:var(--serif); font-style:italic; margin:1.6em 0 .5em; line-height:1.2; }
+#report-content h1 { font-size:26px; border-bottom:1.5px solid var(--warm); padding-bottom:8px; }
+#report-content h2 { font-size:19px; }
+#report-content h3 { font-family:var(--sans); font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:1.4em 0 .4em; }
+#report-content p  { margin-bottom:1em; }
+#report-content ul,#report-content ol { margin:.5em 0 1em 20px; }
+#report-content li { margin-bottom:.3em; }
+#report-content blockquote { border-left:3px solid var(--accent); padding:8px 16px; background:var(--cream); margin:1em 0; font-style:italic; color:var(--muted); }
+#report-content code { font-family:var(--mono); font-size:12px; background:var(--cream); padding:2px 5px; border-radius:3px; }
+
+/* ── Cache panel ──────────────────────────────── */
+.stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-bottom:16px; }
+.stat-card { background:var(--cream); border:1.5px solid var(--warm); border-radius:10px; padding:16px; }
+.stat-val { font-family:var(--serif); font-size:28px; font-style:italic; color:var(--accent); line-height:1; margin-bottom:3px; }
+.stat-lbl { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.1em; }
+.cache-path { font-family:var(--mono); font-size:11px; color:var(--muted); background:var(--cream); padding:8px 12px; border-radius:var(--r); border:1px solid var(--warm); margin:10px 0; }
+.danger-btn { font-family:var(--sans); font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; padding:8px 14px; background:transparent; border:1.5px solid var(--accent); border-radius:var(--r); color:var(--accent); cursor:pointer; transition:all .15s; }
+.danger-btn:hover { background:var(--accent); color:white; }
+
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-thumb { background:var(--warm); border-radius:10px; }
+</style>
+</head>
+<body>
+
+<!-- ── Auth screen ─────────────────────────────────────────── -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-title">Deep Research</div>
+    <div class="auth-sub">Multi-round AI research agent</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">Sign in</button>
+      <button class="auth-tab" onclick="switchAuthTab('register')">Register</button>
+    </div>
+
+    <!-- Login form -->
+    <div id="form-login">
+      <div class="field"><label>Username</label><input id="l-user" type="text" autocomplete="username"/></div>
+      <div class="field"><label>Password</label><input id="l-pass" type="password" autocomplete="current-password"/></div>
+      <button class="auth-btn" onclick="doLogin()">Sign in</button>
+      <div class="auth-error" id="login-err"></div>
+    </div>
+
+    <!-- Register form -->
+    <div id="form-register" style="display:none">
+      <div class="field"><label>Username</label><input id="r-user" type="text" autocomplete="username"/></div>
+      <div class="field"><label>Email <span style="color:var(--muted);font-weight:400">(reports sent here)</span></label><input id="r-email" type="email" autocomplete="email"/></div>
+      <div class="field"><label>Password</label><input id="r-pass" type="password" autocomplete="new-password"/></div>
+      <button class="auth-btn" onclick="doRegister()">Create account</button>
+      <div class="auth-error" id="register-err"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Profile modal ───────────────────────────────────────── -->
+<div class="modal-bg" id="profile-modal">
+  <div class="modal">
+    <h2>Account settings</h2>
+    <div class="field"><label>Username</label><input id="p-username" type="text" readonly style="opacity:.6"/></div>
+    <div class="field">
+      <label>Report email <span style="color:var(--muted);font-weight:400">(where PDFs are sent)</span></label>
+      <input id="p-email" type="email"/>
+    </div>
+    <div class="modal-actions">
+      <button class="save-btn" onclick="saveEmail()">Save email</button>
+      <button class="cancel-btn" onclick="closeProfile()">Close</button>
+    </div>
+    <div class="modal-msg" id="profile-msg"></div>
+  </div>
+</div>
+
+<!-- ── App ─────────────────────────────────────────────────── -->
+<div id="app">
+  <header>
+    <h1>Deep Research</h1>
+    <span class="tagline">Multi-round agent</span>
+    <div class="user-pill">
+      <strong id="header-username"></strong>
+      <button class="icon-btn" onclick="openProfile()">⚙ Profile</button>
+      <button class="icon-btn" onclick="doLogout()">Sign out</button>
+      <div class="status-dot" id="status-dot"></div>
+    </div>
+  </header>
+
+  <aside>
+    <div>
+      <div class="field-label">Query</div>
+      <textarea id="query" placeholder="What would you like to research?" rows="4"></textarea>
+    </div>
+
+    <div>
+      <div class="field-label">Depth</div>
+      <div class="depth-group">
+        <button class="depth-btn" data-d="quick">Quick</button>
+        <button class="depth-btn active" data-d="standard">Standard</button>
+        <button class="depth-btn" data-d="deep">Deep</button>
+      </div>
+      <div class="depth-hint" id="depth-hint">5 searches + gap-fill · gpt-4o-mini</div>
+    </div>
+
+    <div>
+      <div class="field-label">Options</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="toggle-row">
+          <span>Download PDF</span>
+          <label class="toggle"><input type="checkbox" id="opt-pdf" checked/><div class="toggle-track"></div></label>
+        </div>
+        <div class="toggle-row">
+          <span>Email report</span>
+          <label class="toggle"><input type="checkbox" id="opt-email"/><div class="toggle-track"></div></label>
+        </div>
+      </div>
+      <div id="email-hint" style="font-size:11px;color:var(--muted);margin-top:6px"></div>
+    </div>
+
+    <button class="run-btn" id="run-btn">▶ Run Research</button>
+
+    <div>
+      <div class="field-label">Recent</div>
+      <div class="history-list" id="history-list">
+        <div class="history-item" style="font-style:italic;cursor:default">None yet</div>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="tabs">
+      <button class="tab active" data-tab="log">Progress <span class="tab-badge" id="b-log"></span></button>
+      <button class="tab" data-tab="report">Report <span class="tab-badge" id="b-report"></span></button>
+      <button class="tab" data-tab="cache">Cache</button>
+    </div>
+    <div class="panels">
+
+      <div class="panel active" id="panel-log">
+        <div class="empty-state" id="log-empty"><div class="empty-icon">∅</div><div>Run a query to begin</div></div>
+        <div class="log-feed" id="log-feed" style="display:none"></div>
+      </div>
+
+      <div class="panel" id="panel-report">
+        <div class="empty-state" id="report-empty"><div class="empty-icon">📄</div><div>Report will appear here</div></div>
+        <div id="report-wrapper" style="display:none">
+          <div class="report-toolbar">
+            <button class="tool-btn" id="copy-btn">⎘ Copy markdown</button>
+            <button class="tool-btn dl" id="dl-btn" disabled>↓ Download PDF</button>
+          </div>
+          <div id="report-content"></div>
+        </div>
+      </div>
+
+      <div class="panel" id="panel-cache">
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-val" id="c-entries">—</div><div class="stat-lbl">Cached searches</div></div>
+          <div class="stat-card"><div class="stat-val" id="c-age">—</div><div class="stat-lbl">Oldest (hrs ago)</div></div>
+        </div>
+        <div class="cache-path" id="c-path">—</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="danger-btn" onclick="clearCache()">✕ Clear cache</button>
+          <button class="tool-btn" onclick="loadCacheStats()">↺ Refresh</button>
+          <span id="c-msg" style="font-size:12px;color:var(--ok)"></span>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────
+let token = localStorage.getItem('dr_token') || '';
+let user  = JSON.parse(localStorage.getItem('dr_user') || 'null');
+let currentDepth = 'standard';
+let rawMd = '';
+let currentJobId = '';
+const history = [];
+
+const HINTS = {
+  quick:    '3 searches · single round · gpt-4o-mini',
+  standard: '5 searches + gap-fill · gpt-4o-mini',
+  deep:     '8 searches + gap-fill · gpt-4o',
+};
+
+// ── Boot ───────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  if (token && user) showApp();
+  // depth buttons
+  document.querySelectorAll('.depth-btn').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.depth-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    currentDepth = b.dataset.d;
+    document.getElementById('depth-hint').textContent = HINTS[currentDepth];
+  }));
+  document.getElementById('run-btn').addEventListener('click', runResearch);
+  document.getElementById('query').addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') runResearch();
+  });
+  document.getElementById('copy-btn').addEventListener('click', () => {
+    navigator.clipboard.writeText(rawMd).then(() => {
+      const b = document.getElementById('copy-btn');
+      b.textContent = '✓ Copied!';
+      setTimeout(() => b.textContent = '⎘ Copy markdown', 1800);
+    });
+  });
+  document.getElementById('dl-btn').addEventListener('click', downloadPDF);
+  document.getElementById('opt-email').addEventListener('change', updateEmailHint);
+});
+
+function showApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('header-username').textContent = user.username;
+  document.getElementById('p-username').value = user.username;
+  document.getElementById('p-email').value = user.email;
+  updateEmailHint();
+  loadCacheStats();
+}
+
+function updateEmailHint() {
+  const on = document.getElementById('opt-email').checked;
+  document.getElementById('email-hint').textContent = on
+    ? `Will send to: ${user?.email || '(no email set — update in Profile)'}` : '';
+}
+
+// ── Auth tabs ──────────────────────────────────────────────
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) =>
+    t.classList.toggle('active', (i===0 && tab==='login') || (i===1 && tab==='register')));
+  document.getElementById('form-login').style.display    = tab==='login'    ? '' : 'none';
+  document.getElementById('form-register').style.display = tab==='register' ? '' : 'none';
+}
+
+// ── Login ──────────────────────────────────────────────────
+async function doLogin() {
+  const username = document.getElementById('l-user').value.trim();
+  const password = document.getElementById('l-pass').value;
+  document.getElementById('login-err').textContent = '';
+  try {
+    const res = await fetch('/api/auth/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username, password}),
+    });
+    const d = await res.json();
+    if (d.error) { document.getElementById('login-err').textContent = d.error; return; }
+    token = d.token; user = d.user;
+    localStorage.setItem('dr_token', token);
+    localStorage.setItem('dr_user', JSON.stringify(user));
+    showApp();
+  } catch(e) {
+    document.getElementById('login-err').textContent = 'Network error';
+  }
+}
+
+// ── Register ───────────────────────────────────────────────
+async function doRegister() {
+  const username = document.getElementById('r-user').value.trim();
+  const email    = document.getElementById('r-email').value.trim();
+  const password = document.getElementById('r-pass').value;
+  document.getElementById('register-err').textContent = '';
+  try {
+    const res = await fetch('/api/auth/register', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username, email, password}),
+    });
+    const d = await res.json();
+    if (d.error) { document.getElementById('register-err').textContent = d.error; return; }
+    token = d.token; user = d.user;
+    localStorage.setItem('dr_token', token);
+    localStorage.setItem('dr_user', JSON.stringify(user));
+    showApp();
+  } catch(e) {
+    document.getElementById('register-err').textContent = 'Network error';
+  }
+}
+
+// ── Logout ─────────────────────────────────────────────────
+function doLogout() {
+  token = ''; user = null;
+  localStorage.removeItem('dr_token');
+  localStorage.removeItem('dr_user');
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+
+// ── Profile ────────────────────────────────────────────────
+function openProfile() {
+  document.getElementById('p-email').value = user.email;
+  document.getElementById('profile-msg').textContent = '';
+  document.getElementById('profile-modal').classList.add('open');
+}
+function closeProfile() {
+  document.getElementById('profile-modal').classList.remove('open');
+}
+async function saveEmail() {
+  const email = document.getElementById('p-email').value.trim();
+  const msg = document.getElementById('profile-msg');
+  try {
+    const res = await fetch('/api/auth/email', {
+      method:'PUT', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify({email}),
+    });
+    const d = await res.json();
+    if (d.error) { msg.className='modal-msg err'; msg.textContent=d.error; return; }
+    user.email = email;
+    localStorage.setItem('dr_user', JSON.stringify(user));
+    updateEmailHint();
+    msg.className='modal-msg ok'; msg.textContent='✓ Email saved';
+    setTimeout(() => msg.textContent='', 2000);
+  } catch(e) {
+    msg.className='modal-msg err'; msg.textContent='Network error';
+  }
+}
+
+// ── Tabs ───────────────────────────────────────────────────
+document.querySelectorAll && document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-'+tab.dataset.tab).classList.add('active');
+    if (tab.dataset.tab === 'cache') loadCacheStats();
+  }));
+});
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab===name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id==='panel-'+name));
+}
+
+// ── Run ────────────────────────────────────────────────────
+async function runResearch() {
+  const query = document.getElementById('query').value.trim();
+  if (!query) return;
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true; btn.textContent = '⏳ Running…';
+  clearLog();
+  document.getElementById('report-wrapper').style.display = 'none';
+  document.getElementById('report-empty').style.display = 'flex';
+  document.getElementById('dl-btn').disabled = true;
+  const dot = document.getElementById('status-dot');
+  dot.className = 'status-dot active';
+  switchTab('log');
+  document.getElementById('b-report').classList.remove('on');
+  rawMd = ''; currentJobId = '';
+  addHistory(query);
+
+  try {
+    const res = await fetch('/api/research', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify({
+        query, depth: currentDepth,
+        send_email: document.getElementById('opt-email').checked,
+        export_pdf: document.getElementById('opt-pdf').checked,
+      }),
+    });
+    if (res.status === 401) { doLogout(); return; }
+    const {job_id} = await res.json();
+    currentJobId = job_id;
+
+    const es = new EventSource(`/api/stream/${job_id}?token=${token}`);
+    // Note: EventSource doesn't support headers, so we pass token as query param
+    // server.py handles both Authorization header and ?token= query param
+
+    es.addEventListener('done', () => {
+      es.close();
+      btn.disabled=false; btn.textContent='▶ Run Research';
+      dot.className='status-dot done';
+      if (rawMd) document.getElementById('b-report').classList.add('on');
+    });
+    es.onmessage = e => {
+      const {text} = JSON.parse(e.data);
+      if (text.startsWith('>') || text.startsWith('##') || text.startsWith('# ')) {
+        rawMd = text; renderReport(text);
+        if (document.getElementById('opt-pdf').checked) {
+          document.getElementById('dl-btn').disabled = false;
+        }
+        return;
+      }
+      addLog(text);
+    };
+    es.onerror = () => {
+      es.close(); addLog('❌ Connection lost');
+      btn.disabled=false; btn.textContent='▶ Run Research';
+      dot.className='status-dot';
+    };
+  } catch(err) {
+    addLog('❌ '+err.message);
+    btn.disabled=false; btn.textContent='▶ Run Research';
+    dot.className='status-dot';
+  }
+}
+
+// ── PDF download ───────────────────────────────────────────
+async function downloadPDF() {
+  if (!currentJobId) return;
+  const btn = document.getElementById('dl-btn');
+  btn.textContent = '⏳ Preparing…'; btn.disabled = true;
+  try {
+    const res = await fetch(`/api/pdf/${currentJobId}`, {
+      headers: {'Authorization': 'Bearer '+token},
+    });
+    if (!res.ok) { addLog('⚠️ PDF not ready yet'); btn.disabled=false; btn.textContent='↓ Download PDF'; return; }
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `research_report.pdf`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    btn.textContent = '✓ Downloaded'; 
+    setTimeout(() => { btn.textContent='↓ Download PDF'; btn.disabled=false; }, 2000);
+  } catch(e) {
+    addLog('❌ Download failed: '+e.message);
+    btn.disabled=false; btn.textContent='↓ Download PDF';
+  }
+}
+
+// ── Log helpers ────────────────────────────────────────────
+function clearLog() {
+  document.getElementById('log-feed').innerHTML = '';
+  document.getElementById('log-feed').style.display = 'none';
+  document.getElementById('log-empty').style.display = 'flex';
+}
+function addLog(text) {
+  document.getElementById('log-empty').style.display = 'none';
+  const feed = document.getElementById('log-feed');
+  feed.style.display = 'flex';
+  const el = document.createElement('div');
+  el.className = 'log-entry' +
+    (text.startsWith('✅')||text.startsWith('🎉') ? ' hi' : '') +
+    (text.startsWith('❌')||text.startsWith('⚠️') ? ' err' : '');
+  el.textContent = text;
+  feed.appendChild(el);
+  el.scrollIntoView({behavior:'smooth', block:'end'});
+}
+function renderReport(md) {
+  document.getElementById('report-empty').style.display = 'none';
+  document.getElementById('report-wrapper').style.display = 'block';
+  document.getElementById('report-content').innerHTML = marked.parse(md);
+  switchTab('report');
+}
+function addHistory(q) {
+  if (history.includes(q)) return;
+  history.unshift(q);
+  const list = document.getElementById('history-list');
+  list.innerHTML = '';
+  history.slice(0,8).forEach(h => {
+    const el = document.createElement('div');
+    el.className='history-item'; el.textContent=h; el.title=h;
+    el.onclick = () => document.getElementById('query').value = h;
+    list.appendChild(el);
+  });
+}
+
+// ── Cache ──────────────────────────────────────────────────
+async function loadCacheStats() {
+  try {
+    const res = await fetch('/api/cache/stats', {headers:{'Authorization':'Bearer '+token}});
+    const d = await res.json();
+    document.getElementById('c-entries').textContent = d.total_entries ?? '0';
+    document.getElementById('c-age').textContent = d.oldest_entry_hours_ago ?? '—';
+    document.getElementById('c-path').textContent = d.db_path ?? '';
+  } catch {}
+}
+async function clearCache() {
+  const res = await fetch('/api/cache/clear', {method:'POST', headers:{'Authorization':'Bearer '+token}});
+  const d = await res.json();
+  document.getElementById('c-msg').textContent = `✓ Cleared ${d.cleared} entries`;
+  setTimeout(() => document.getElementById('c-msg').textContent='', 2500);
+  loadCacheStats();
+}
+</script>
+</body>
+</html>

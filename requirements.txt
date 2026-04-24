@@ -1,0 +1,10 @@
+openai-agents
+python-dotenv
+fastapi
+uvicorn[standard]
+sqlalchemy
+aiosqlite
+reportlab
+sendgrid
+pydantic
+reportlab
